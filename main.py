@@ -14,10 +14,9 @@ for i in z:
         flag = True
 if flag:
     for i in z:
-        for j in i:
-            if j == y[0]:
-                index = i.index(j)
-                z.append(i[0:index]+i[index+1:len(i)])
+        for j in range(0, len(i)):
+            if i[j] == y[0]:
+                z.append(i[0:j]+i[j+1:len(i)])
 for i in z:
     if i.isupper() and len(i) == 1:
         temp = i
