@@ -3,60 +3,102 @@ import re
 
 class Chamsky:
 
-    def __init__(self, txt):
-        self.txt = txt
+    def __init__(self, grammer_list):
+        self.grammer_list = grammer_list
+        self.grammer_dict = {}
+        self.add_list = {}
+        for line in grammer_list:
+            grammer = re.split('->', line, 1)
+            left_part = grammer[0]
+            right_part = grammer[1].split('|')
+            self.add_list[left_part] = []
+            r = self.grammer_dict.get(left_part, list())
+            r.extend(right_part)
+            self.grammer_dict[left_part] = r
+
+    def update_dict(self):
+        for key, rules in self.grammer_dict:
+            rules.extand(self.add_list[key])
+            rules = list(set(rules))
+        return self.grammer_dict
 
     def make_T(self):
         T = {}
-        terminals = re.findall('[a-z]', txt)
+        for line in grammer_list:
+            terminals = re.findall('[a-z]', line)
         terminals = list(set(terminals))
         for i in terminals:
             T["T" + i] = i
         return T
 
-    def print_grammer(self, left_part, right_part):
-        for i in right_part:
-            if i != '' and i != left_part:
-                print(left_part+'->'+i)
+    def print_grammer(self):
+        for key, values in self.grammer_dict.items():
+            print(f'{key}->' + ' | '.join(values))
         T = self.make_T()
-        for i, j in T.items():
-            print(i+'->'+j)
+        for key, value in T.items():
+            print(key+'->'+value)
+
+    def replace_sth(self,rule, rep, repwith):
+        res = []
+        for i in range(0, len(rule)):
+            if rule[i] == rep:
+                res.append(rule[0:i]+repwith+rule[i+1:len(rule)])
+        return res
+
+    def remove_landa(self):
+        have_landa = []
+        for key, rules in self.grammer_dict:
+            if '#' in rules:
+                rules.remove('#')
+                have_landa.append(key)
+        for key, rules in self.grammer_dict:
+            for rule in rules:
+                for landa in have_landa:
+                    changed_rules = self.replace_sth(rule, landa, '')
+                    self.add_list[key].extend(changed_rules)
+
+    def remove_singular(self):
+        singular = []
+        for key, rules in self.grammer_dict:
+            for rule in rules:
+                if rule.isupper() and len(rule) == 1:
+                    singular.append(rule)
+                    rules.remove(rule)
+        for key, rules in self.grammer_dict:
+            for rule in rules:
+                for rep in singular:
+                    for law in self.grammer_dict[rep]:
+                        changed_rules = self.replace_sth(rule, rep, law)
+                        self.add_list[key].extend(changed_rules)
+
+    def replace_lower(self):
+        changed_rules = []
+        flag = False
+        for key, rules in self.grammer_dict:
+            for rule in rules:
+                for i in range(0, len(rule)):
+                    if rule[i].islower and rule[i-1] != 'T':
+                        flag = True
+                        temp = rule[0:i]+'T'+rule[i]+rule[i+1:len(rule)]
+                if flag:
+                    rules.remove(rule)
+                    changed_rules.append(temp)
+            self.add_list[key].extend(changed_rules)
 
     def chamsky(self):
-        grammer = re.split('->', self.txt, 1)
-        left_part = grammer[0]
-        right_part = grammer[1].split('|')
-        flag = False
-        temp = None
-        add_list = []
-        for i in right_part:
-            if i == '#':
-                right_part.remove(i)
-                flag = True
-        if flag:
-            for i in right_part:
-                i = i.replace(left_part, '')
-                add_list.append(i)
-
-        for i in right_part:
-            if i.isupper() and len(i) == 1:
-                temp = i
-                right_part.remove(i)
-
-        if temp is not None:
-            for i in right_part:
-                i = i.replace(left_part, temp)
-                add_list.append(i)
-#        for i in right_part:
-#            for j in range(0, len(i)):
-#                if i[j].islower():
-#                    i = i.replace(i[j], "T"+i[j])
-#                    add_list.append(i)
-        right_part.extend(add_list)
-        right_part = list(set(right_part))
-        self.print_grammer(left_part, right_part)
+        self.remove_landa()
+        self.grammer_dict = self.update_dict()
+        self.remove_singular()
+        self.grammer_dict = self.update_dict()
+        self.replace_lower()
+        self.grammer_dict = self.update_dict()
 
 
-txt = input()
-hey = Chamsky(txt)
+filename = input()
+file = open(filename, "r")
+grammer_list = []
+for line in file:
+    grammer_list.append(file.readline())
+
+hey = Chamsky(grammer_list)
 hey.chamsky()
